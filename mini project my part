@@ -1,0 +1,149 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <errno.h>
+
+#define MAX_USERS 100
+#define MAX_BOOKS 100
+#define MAX_TRANSACTIONS 500
+
+typedef struct { char username[50]; char password[50]; } User;
+typedef struct { int id; char name[100]; float buyPrice; float rentPrice; int quantity; } Book;
+typedef struct { char username[50]; char bookName[100]; char type[20]; float amount; char date[50]; } Transaction;
+
+User users[MAX_USERS];
+Book books[MAX_BOOKS];
+Transaction transactions[MAX_TRANSACTIONS];
+
+int userCount = 0;
+int bookCount = 0;
+int transactionCount = 0;
+
+void saveUsers() {
+    FILE *f = fopen("users.txt","w");
+    if(!f) { printf("Failed to save users: %s\n", strerror(errno)); return; }
+    for(int i=0;i<userCount;i++) fprintf(f,"%s|%s\n",users[i].username,users[i].password);
+    fclose(f);
+}
+
+void loadUsers() {
+    FILE *f = fopen("users.txt","r");
+    if(!f) return;
+    char line[256];
+    while(fgets(line,sizeof(line),f)) {
+        if(userCount>=MAX_USERS) break;
+        line[strcspn(line,"\n")] = 0;
+        char *u = strtok(line,"|");
+        char *p = strtok(NULL,"|");
+        if(u && p) {
+            strncpy(users[userCount].username,u,sizeof(users[userCount].username)-1);
+            users[userCount].username[sizeof(users[userCount].username)-1] = 0;
+            strncpy(users[userCount].password,p,sizeof(users[userCount].password)-1);
+            users[userCount].password[sizeof(users[userCount].password)-1] = 0;
+            userCount++;
+        }
+    }
+    fclose(f);
+}
+
+void saveBooks() {
+    FILE *f = fopen("books.txt","w");
+    if(!f) { printf("Failed to save books: %s\n", strerror(errno)); return; }
+    for(int i=0;i<bookCount;i++) fprintf(f,"%d|%s|%.2f|%.2f|%d\n",books[i].id,books[i].name,books[i].buyPrice,books[i].rentPrice,books[i].quantity);
+    fclose(f);
+}
+
+void loadBooks() {
+    FILE *f = fopen("books.txt","r");
+    if(!f) return;
+    char line[512];
+    while(fgets(line,sizeof(line),f)) {
+        if(bookCount>=MAX_BOOKS) break;
+        line[strcspn(line,"\n")] = 0;
+        char *id = strtok(line,"|");
+        char *name = strtok(NULL,"|");
+        char *buy = strtok(NULL,"|");
+        char *rent = strtok(NULL,"|");
+        char *qty = strtok(NULL,"|");
+        if(name && buy && rent) {
+            books[bookCount].id = bookCount+1;
+            strncpy(books[bookCount].name,name,sizeof(books[bookCount].name)-1);
+            books[bookCount].name[sizeof(books[bookCount].name)-1] = 0;
+            books[bookCount].buyPrice = atof(buy);
+            books[bookCount].rentPrice = atof(rent);
+            books[bookCount].quantity = qty ? atoi(qty) : 1;
+            bookCount++;
+        }
+    }
+    fclose(f);
+}
+
+void saveTransactions() {
+    FILE *f = fopen("transactions.txt","w");
+    if(!f) { printf("Failed to save transactions: %s\n", strerror(errno)); return; }
+    for(int i=0;i<transactionCount;i++) fprintf(f,"%s|%s|%s|%.2f|%s\n",transactions[i].username,transactions[i].bookName,transactions[i].type,transactions[i].amount,transactions[i].date);
+    fclose(f);
+}
+
+void loadTransactions() {
+    FILE *f = fopen("transactions.txt","r");
+    if(!f) return;
+    char line[512];
+    while(fgets(line,sizeof(line),f)) {
+        if(transactionCount>=MAX_TRANSACTIONS) break;
+        line[strcspn(line,"\n")] = 0;
+        char *u = strtok(line,"|");
+        char *b = strtok(NULL,"|");
+        char *t = strtok(NULL,"|");
+        char *amt = strtok(NULL,"|");
+        char *d = strtok(NULL,"|");
+        if(u && b && t && amt && d) {
+            strncpy(transactions[transactionCount].username,u,sizeof(transactions[transactionCount].username)-1);
+            transactions[transactionCount].username[sizeof(transactions[transactionCount].username)-1] = 0;
+            strncpy(transactions[transactionCount].bookName,b,sizeof(transactions[transactionCount].bookName)-1);
+            transactions[transactionCount].bookName[sizeof(transactions[transactionCount].bookName)-1] = 0;
+            strncpy(transactions[transactionCount].type,t,sizeof(transactions[transactionCount].type)-1);
+            transactions[transactionCount].type[sizeof(transactions[transactionCount].type)-1] = 0;
+            transactions[transactionCount].amount = atof(amt);
+            strncpy(transactions[transactionCount].date,d,sizeof(transactions[transactionCount].date)-1);
+            transactions[transactionCount].date[sizeof(transactions[transactionCount].date)-1] = 0;
+            transactionCount++;
+        }
+    }
+    fclose(f);
+}
+
+int main() {
+    loadUsers();
+    loadBooks();
+    loadTransactions();
+
+    // Example usage
+    // Add a user
+    strncpy(users[userCount].username,"alice",49);
+    strncpy(users[userCount].password,"1234",49);
+    userCount++;
+    saveUsers();
+
+    // Add a book
+    books[bookCount].id = bookCount+1;
+    strncpy(books[bookCount].name,"C Programming",99);
+    books[bookCount].buyPrice = 500.0;
+    books[bookCount].rentPrice = 50.0;
+    books[bookCount].quantity = 10;
+    bookCount++;
+    saveBooks();
+
+    // Add a transaction
+    strncpy(transactions[transactionCount].username,"alice",49);
+    strncpy(transactions[transactionCount].bookName,"C Programming",99);
+    strncpy(transactions[transactionCount].type,"BUY",19);
+    transactions[transactionCount].amount = 500.0;
+    time_t t = time(NULL);
+    strftime(transactions[transactionCount].date,sizeof(transactions[transactionCount].date),"%Y-%m-%d %H:%M:%S",localtime(&t));
+    transactionCount++;
+    saveTransactions();
+
+    return 0;
+}
